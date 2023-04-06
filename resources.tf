@@ -218,7 +218,7 @@ resource "aws_s3_bucket_object" "cleaned_data" {
 }
 
 resource "aws_s3_bucket_object" "raw_data" {
-  bucket = aws_s3_bucket.my_bucket.bucket
+  bucket = aws_s3_bucket.tm_s3_bucket.bucket
   key    = "raw_data/"
   content_type = "application/x-directory"
 }
