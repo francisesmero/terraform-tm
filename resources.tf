@@ -7,10 +7,18 @@ resource "aws_vpc" "tm-vpc" {
   }
 }
 
+
 resource "aws_key_pair" "my_keypair" {
   key_name   = "my-keypair"
   public_key = file("~/.ssh/id_rsa.pub")
 }
+
+resource "aws_internet_gateway" "tm-internet-gateway" {
+  tags = {
+    Name = "tm-internet-gateway"
+  }
+}
+
 
 
 resource "aws_subnet" "public-s-1" {
