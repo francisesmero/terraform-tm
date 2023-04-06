@@ -106,28 +106,6 @@ resource "aws_instance" "ec2-be" {
   }
 }
 
-resource "aws_instance" "ec2-db" {
-  ami           = "ami-0ce792959cf41c394"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.private-s-3.id
-  key_name = aws_key_pair.my_keypair.key_name
-
-  tags = {
-    Name = "ec2_db"
-  }
-}
-
-resource "aws_instance" "ec2-db2" {
-  ami           = "ami-0ce792959cf41c394"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.private-s-4.id
-  key_name = aws_key_pair.my_keypair.key_name
-
-  tags = {
-    Name = "ec2_db2"
-  }
-}
-
 
 
 resource "aws_instance" "ec2-bastion" {
