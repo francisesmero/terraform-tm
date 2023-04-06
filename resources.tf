@@ -13,12 +13,6 @@ resource "aws_key_pair" "my_keypair" {
   public_key = file("~/.ssh/id_rsa.pub")
 }
 
-resource "aws_internet_gateway" "tm-internet-gateway" {
-  tags = {
-    Name = "tm-internet-gateway"
-  }
-}
-
 
 
 resource "aws_subnet" "public-s-1" {
