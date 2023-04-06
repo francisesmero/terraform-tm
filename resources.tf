@@ -7,6 +7,12 @@ resource "aws_vpc" "tm-vpc" {
   }
 }
 
+resource "aws_key_pair" "my_keypair" {
+  key_name   = "my-keypair"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+
 resource "aws_subnet" "public-s-1" {
   vpc_id       = aws_vpc.tm-vpc.id
   cidr_block   = "172.30.0.0/24"
@@ -126,6 +132,7 @@ resource "aws_instance" "ec2-bastion" {
   ami           = "ami-0ce792959cf41c394"
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.public-s-1.id
+  key_name = aws_key_pair.my_keypair.key_name
 
   tags = {
     Name = "ec2_bastion"
@@ -145,6 +152,23 @@ resource "aws_db_subnet_group" "tm-subnet-group" {
 
 resource "aws_security_group" "tm-checkin-db-sg" {
   name_prefix = "tm-checkin-db-sg"
+  vpc_id      = aws_vpc.tm-vpc.id
+
+  ingress {
+    from_port = 3306
+    to_port = 3306
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "tm-checkin-db-sg"
+  }
+}
+
+
+resource "aws_security_group" "bastion-sg" {
+  name_prefix = "bastion-sg"
   vpc_id      = aws_vpc.tm-vpc.id
 
   ingress {
@@ -185,4 +209,16 @@ resource "aws_s3_bucket_acl" "tm_s3_bucket_acl" {
   bucket = aws_s3_bucket.tm_s3_bucket.id
 
   acl = "private"
+}
+
+resource "aws_s3_bucket_object" "cleaned_data" {
+  bucket = aws_s3_bucket.tm_s3_bucket.id
+  key    = "cleaned_data/"
+  content_type = "application/x-directory"
+}
+
+resource "aws_s3_bucket_object" "raw_data" {
+  bucket = aws_s3_bucket.my_bucket.bucket
+  key    = "raw_data/"
+  content_type = "application/x-directory"
 }
