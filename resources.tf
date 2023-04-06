@@ -14,6 +14,16 @@ resource "aws_key_pair" "my_keypair" {
 }
 
 
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public-s-1.id
+}
+
+# Allocate an Elastic IP for the NAT Gateway
+resource "aws_eip" "nat_eip" {
+  vpc = true
+}
+
 
 resource "aws_subnet" "public-s-1" {
   vpc_id       = aws_vpc.tm-vpc.id
@@ -130,11 +140,16 @@ resource "aws_db_subnet_group" "tm-subnet-group" {
     aws_subnet.private-s-3.id,
     aws_subnet.private-s-4.id
   ]
+
+   tags = {
+    Name = "tm-vpc-subnet-group"
+    VPC  = aws_vpc.tm-vpc.id
+  }
 }
 
 resource "aws_security_group" "tm-checkin-db-sg" {
   name_prefix = "tm-checkin-db-sg"
-  vpc_id      = aws_vpc.tm-vpc.id
+  
 
   ingress {
     from_port = 3306
