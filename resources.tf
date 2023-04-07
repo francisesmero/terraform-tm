@@ -177,7 +177,7 @@ resource "aws_instance" "ec2-backend" {
   vpc_security_group_ids = [aws_security_group.backend_security_group.id]
 
   tags = {
-    Name = "ec2_be"
+    Name = "ec2_backend"
   }
 }
 
@@ -188,7 +188,7 @@ resource "aws_instance" "ec2-etl" {
   vpc_security_group_ids = [aws_security_group.etl_security_group.id]
 
   tags = {
-    Name = "ec2_be"
+    Name = "ec2_etl_pipeline"
   }
 }
 
@@ -199,7 +199,7 @@ resource "aws_instance" "ec2-bastion" {
   vpc_security_group_ids = [aws_security_group.bastion_security_group.id]
 
   tags = {
-    Name = "ec2_be"
+    Name = "ec2_bastion_host"
   }
 }
 
