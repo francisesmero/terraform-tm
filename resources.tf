@@ -170,6 +170,40 @@ resource "aws_db_instance" "tm-checkin-db" {
   db_subnet_group_name   = aws_db_subnet_group.multi_az_subnets.name
 }
 
+resource "aws_instance" "ec2-backend" {
+  ami           = "ami-0ce792959cf41c394"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.private_subnet_1.id
+  vpc_security_group_ids = [aws_security_group.backend_security_group.id]
+
+  tags = {
+    Name = "ec2_be"
+  }
+}
+
+resource "aws_instance" "ec2-etl" {
+  ami           = "ami-0ce792959cf41c394"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.private_subnet_2.id
+  vpc_security_group_ids = [aws_security_group.etl_security_group.id]
+
+  tags = {
+    Name = "ec2_be"
+  }
+}
+
+resource "aws_instance" "ec2-bastion" {
+  ami           = "ami-0ce792959cf41c394"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public_subnet.id
+  vpc_security_group_ids = [aws_security_group.bastion_security_group.id]
+
+  tags = {
+    Name = "ec2_be"
+  }
+}
+
+
 
 resource "aws_s3_bucket" "tm_s3_bucket" {
   bucket = "tm-csv-bucket"
