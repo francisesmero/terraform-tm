@@ -201,13 +201,6 @@ resource "aws_security_group_rule" "etl-rds-egress-rule-2" {
 }
 
 
-resource "aws_db_subnet_group" "multi_az_subnets" {
-  name        = "multi-az-db-subnet-group"
-  subnet_ids  = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
-  tags        = {
-    Name = "multi-az-db-subnet-group"
-  }
-}
 
 resource "aws_db_instance" "tm-checkin-db" {
   allocated_storage      = 10
@@ -223,7 +216,13 @@ resource "aws_db_instance" "tm-checkin-db" {
   db_subnet_group_name   = aws_db_subnet_group.multi_az_subnets.name
 }
 
-
+resource "aws_db_subnet_group" "multi_az_subnets" {
+  name        = "multi-az-db-subnet-group"
+  subnet_ids  = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+  tags        = {
+    Name = "multi-az-db-subnet-group"
+  }
+}
 
 
 resource "aws_instance" "ec2-bastion" {
