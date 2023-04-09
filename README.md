@@ -6,6 +6,6 @@ terraform template to manage our infra for data engineering project
 
 run ```terraform plan -out=tflan```
 
-run ```terraform apply "tflan```
+run ```terraform apply "tflan"```
 
 
