@@ -60,41 +60,48 @@ resource "aws_subnet" "public_subnet_flask" {
 
 resource "aws_security_group" "bastion_security_group" {
   name_prefix     = "bastion-"
-  vpc_id          = "aws_vpc.tm_vpc.id"
+  vpc_id          = aws_vpc.tm_vpc.id
 }
 
 resource "aws_security_group" "flask_security_group" {
   name_prefix     = "flask-"
-  vpc_id          = "aws_vpc.tm_vpc.id"
+  vpc_id          = aws_vpc.tm_vpc.id
 }
 
 resource "aws_security_group" "etl_rds_security_group" {
   name_prefix     = "etl_rds-"
-  vpc_id          = "aws_vpc.tm_vpc.id"
+  vpc_id          = aws_vpc.tm_vpc.id
 }
 
 
 
 # bastion security group rules
 
-
-
 resource "aws_security_group_rule" "bastion-ingress-rule-1" {
   type                     = "ingress"
   from_port                = "22"
   to_port                  = "22"
   protocol                 = "tcp"
-  cidr_blocks              = [aws_vpc.tm_vpc.cidr_block]
+  cidr_blocks              = ["0.0.0.0/0"]
   security_group_id        = aws_security_group.bastion_security_group.id
 }
 
 resource "aws_security_group_rule" "bastion-egress-rule-1" {
   type                     = "egress"
-  from_port                = "0"
-  to_port                  = "0"
-  protocol                 = "-1"
-  cidr_blocks              = [aws_vpc.tm_vpc.cidr_block]
+  from_port                = "8080"
+  to_port                  = "8080"
+  protocol                 = "tcp"
   security_group_id        = aws_security_group.bastion_security_group.id
+  source_security_group_id = aws_security_group.flask_security_group.id
+}
+
+resource "aws_security_group_rule" "bastion-ingress-rule-2" {
+  type                     = "ingress"
+  from_port                = "3306"
+  to_port                  = "3306"
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.bastion_security_group.id
+  source_security_group_id = aws_security_group.etl_rds_security_group.id
 }
 
 resource "aws_security_group_rule" "bastion-egress-rule-2" {
@@ -102,8 +109,8 @@ resource "aws_security_group_rule" "bastion-egress-rule-2" {
   from_port                = "3306"
   to_port                  = "3306"
   protocol                 = "tcp"
-  cidr_blocks              = [aws_vpc.tm_vpc.cidr_block]
   security_group_id        = aws_security_group.bastion_security_group.id
+  source_security_group_id = aws_security_group.etl_rds_security_group.id
 }
 
 # flask app security group rules
@@ -113,7 +120,7 @@ resource "aws_security_group_rule" "flask-ingress-rule-1" {
   from_port                = "80"
   to_port                  = "80"
   protocol                 = "tcp"
-  cidr_blocks              = [aws_vpc.tm_vpc.cidr_block]
+  cidr_blocks              = ["0.0.0.0/0"]
   security_group_id        = aws_security_group.flask_security_group.id
 }
 
@@ -122,7 +129,7 @@ resource "aws_security_group_rule" "flask-ingress-rule-2" {
   from_port                = "443"
   to_port                  = "443"
   protocol                 = "tcp"
-  cidr_blocks              = [aws_vpc.tm_vpc.cidr_block]
+  cidr_blocks              = ["0.0.0.0/0"]
   security_group_id        = aws_security_group.flask_security_group.id
 }
 
@@ -131,37 +138,46 @@ resource "aws_security_group_rule" "flask-egress-rule-1" {
   from_port                = "3306"
   to_port                  = "3306"
   protocol                 = "tcp"
-  cidr_blocks              = [aws_vpc.tm_vpc.cidr_block]
+  source_security_group_id = aws_security_group.etl_rds_security_group.id
   security_group_id        = aws_security_group.flask_security_group.id
 }
 
 # rds-etl security group rules
 
-resource "aws_security_group_rule" "rds-etl-ingress-rule-1" {
+resource "aws_security_group_rule" "etl-rds-ingress-rule-1" {
   type                     = "ingress"
   from_port                = "22"
   to_port                  = "22"
   protocol                 = "tcp"
   security_group_id        = aws_security_group.etl_rds_security_group.id
-  source_security_group_id  = aws_security_group.bastion_security_group.id
+  source_security_group_id = aws_security_group.bastion_security_group.id
 }
 
-resource "aws_security_group_rule" "rds-etl-ingress-rule-2" {
+resource "aws_security_group_rule" "etl-rds-ingress-rule-2" {
   type                     = "ingress"
   from_port                = "3306"
   to_port                  = "3306"
   protocol                 = "tcp"
-  source_security_group_id  = aws_security_group.etl_rds_security_group.id
-  security_group_id        = aws_security_group.flask_security_group.id
+  security_group_id        = aws_security_group.etl_rds_security_group.id
+  source_security_group_id = aws_security_group.flask_security_group.id
 }
 
-resource "aws_security_group_rule" "rds-etl-egress-rule-1" {
+resource "aws_security_group_rule" "etl-rds-egress-rule-1" {
+  type                     = "egress"
+  from_port                = "22"
+  to_port                  = "22"
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.etl_rds_security_group.id
+  source_security_group_id = aws_security_group.bastion_security_group.id
+}
+
+resource "aws_security_group_rule" "etl-rds-egress-rule-2" {
   type                     = "egress"
   from_port                = "3306"
   to_port                  = "3306"
   protocol                 = "tcp"
-  source_security_group_id  = aws_security_group.etl_rds_security_group.id
-  security_group_id        = aws_security_group.flask_security_group.id
+  security_group_id        = aws_security_group.etl_rds_security_group.id
+  source_security_group_id = aws_security_group.flask_security_group.id
 }
 
 
