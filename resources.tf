@@ -6,15 +6,16 @@ resource "aws_vpc" "tm_vpc" {
   }
 }
 
-resource "aws_subnet" "public_subnet" {
+resource "aws_subnet" "public_subnet_bastion" {
   vpc_id     = aws_vpc.tm_vpc.id
   cidr_block = "172.30.0.0/24"
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "public-subnet"
+    Name = "public-subnet-bastion"
   }
 }
+
 
 resource "aws_subnet" "private_subnet_1" {
   vpc_id     = aws_vpc.tm_vpc.id
@@ -36,23 +37,25 @@ resource "aws_subnet" "private_subnet_2" {
   }
 }
 
-resource "aws_subnet" "private_subnet_3" {
+resource "aws_subnet" "private_subnet_etl" {
   vpc_id     = aws_vpc.tm_vpc.id
   cidr_block = "172.30.3.0/24"
 
   tags = {
-    Name = "private-subnet-3-etl"
+    Name = "private-subnet-etl"
   }
 }
 
-resource "aws_subnet" "private_subnet_4" {
+resource "aws_subnet" "public_subnet_flask" {
   vpc_id     = aws_vpc.tm_vpc.id
   cidr_block = "172.30.4.0/24"
+  map_public_ip_on_launch = true
 
   tags = {
-    Name = "private-subnet-3-be"
+    Name = "public-subnet-flask"
   }
 }
+
 
 
 resource "aws_security_group" "bastion_security_group" {
@@ -71,8 +74,63 @@ resource "aws_security_group" "bastion_security_group" {
   }
 }
 
-resource "aws_security_group" "etl_security_group" {
-  name_prefix = "etl-"
+# resource "aws_security_group" "etl_security_group" {
+#   name_prefix = "etl-"
+#   vpc_id      = aws_vpc.tm_vpc.id
+
+#   ingress {
+#     from_port        = 22
+#     to_port          = 22
+#     protocol         = "tcp"
+#     security_groups = [aws_security_group.bastion_security_group.id]
+#   }
+
+#   ingress {
+#     from_port        = 3306
+#     to_port          = 3306
+#     protocol         = "tcp"
+#     security_groups = [aws_security_group.rds_security_group.id]
+#   }
+
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+
+#   tags = {
+#     Name = "etl-security-group"
+#   }
+# }
+
+
+
+# resource "aws_security_group" "rds_security_group" {
+#   name_prefix = "rds-"
+#   description = "Security group for RDS instance"
+#   vpc_id = aws_vpc.tm_vpc.id
+#   ingress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+  
+#   ingress {
+#     from_port   = 3306
+#     to_port     = 3306
+#     protocol    = "tcp"
+#     security_groups = [aws_security_group.etl_security_group.id, aws_security_group.bastion_security_group.id]
+#   }
+
+#   tags = {
+#     Name = "rds-security-group"
+#   }
+# }
+
+resource "aws_security_group" "etl_rds_security_group" {
+  name_prefix = "etl-rds-"
   vpc_id      = aws_vpc.tm_vpc.id
 
   ingress {
@@ -86,8 +144,9 @@ resource "aws_security_group" "etl_security_group" {
     from_port        = 3306
     to_port          = 3306
     protocol         = "tcp"
-    # security_groups = [aws_security_group.backend_security_group.id]
+    security_groups = [aws_security_group.flask_security_group.id]
   }
+
 
   egress {
     from_port   = 0
@@ -97,48 +156,35 @@ resource "aws_security_group" "etl_security_group" {
   }
 
   tags = {
-    Name = "etl-security-group"
+    Name = "etl-rds-security-group"
   }
 }
 
-resource "aws_security_group" "backend_security_group" {
-  name_prefix = "backend-"
+
+
+resource "aws_security_group" "flask_security_group" {
+  name_prefix = "flask-"
   vpc_id      = aws_vpc.tm_vpc.id
 
   ingress {
-    from_port        = 3306
-    to_port          = 3306
+    from_port        = 80
+    to_port          = 80
     protocol         = "tcp"
-    security_groups = [aws_security_group.etl_security_group.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "backend-security-group"
-  }
-}
-
-resource "aws_security_group" "rds_security_group" {
-  name_prefix = "rds-"
-  description = "Security group for RDS instance"
-  vpc_id = aws_vpc.tm_vpc.id
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
-    Name = "rds-security-group"
+    Name = "flask-security-group"
   }
 }
+
 
 # data "aws_subnets" "default" {
 #   filter {
@@ -164,44 +210,37 @@ resource "aws_db_instance" "tm-checkin-db" {
   db_name                = "tmcheckindb"
   identifier             = "tm-checkin-db"
   skip_final_snapshot    = false
-  vpc_security_group_ids = [aws_security_group.rds_security_group.id]
+  vpc_security_group_ids = [aws_security_group.etl_rds_security_group.id]
   username               = jsondecode(data.aws_secretsmanager_secret_version.tm-db-secret.secret_string)["username"]
   password               = jsondecode(data.aws_secretsmanager_secret_version.tm-db-secret.secret_string)["password"]
   db_subnet_group_name   = aws_db_subnet_group.multi_az_subnets.name
 }
 
-resource "aws_instance" "ec2-backend" {
-  ami           = "ami-0ce792959cf41c394"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.private_subnet_1.id
-  vpc_security_group_ids = [aws_security_group.backend_security_group.id]
 
-  tags = {
-    Name = "ec2_backend"
-  }
-}
 
-resource "aws_instance" "ec2-etl" {
-  ami           = "ami-0ce792959cf41c394"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.private_subnet_2.id
-  vpc_security_group_ids = [aws_security_group.etl_security_group.id]
-
-  tags = {
-    Name = "ec2_etl_pipeline"
-  }
-}
 
 resource "aws_instance" "ec2-bastion" {
   ami           = "ami-0ce792959cf41c394"
   instance_type = "t2.micro"
-  subnet_id     = aws_subnet.public_subnet.id
+  subnet_id     = aws_subnet.public_subnet_bastion.id
   vpc_security_group_ids = [aws_security_group.bastion_security_group.id]
 
   tags = {
     Name = "ec2_bastion_host"
   }
 }
+
+resource "aws_instance" "ec2-flask" {
+  ami           = "ami-0ce792959cf41c394"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public_subnet_flask.id
+  vpc_security_group_ids = [aws_security_group.flask_security_group.id]
+
+  tags = {
+    Name = "ec2_flask_app"
+  }
+}
+
 
 
 
