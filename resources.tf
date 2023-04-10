@@ -224,12 +224,46 @@ resource "aws_db_subnet_group" "multi_az_subnets" {
   }
 }
 
+# generate key-pairs for bation and flask
+
+resource "aws_key_pair" "bastion_key_pair" {
+  key_name   = "bastion_key_pair"
+  public_key = tls_private_key.bastion_private_key.public_key_openssh
+}
+
+resource "aws_key_pair" "flask_key_pair" {
+  key_name   = "flask_key_pair"
+  public_key = tls_private_key.flask_private_key.public_key_openssh
+}
+
+resource "tls_private_key" "bastion_private_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "tls_private_key" "flask_private_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "local_file" "bastion-key" {
+  content  = tls_private_key.bastion_private_key.private_key_pem
+  filename = "bastion-key"
+}
+
+resource "local_file" "flask-key" {
+  content  = tls_private_key.flask_private_key.private_key_pem
+  filename = "flask-key"
+}
+
+
 
 resource "aws_instance" "ec2-bastion" {
   ami           = "ami-0ce792959cf41c394"
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.public_subnet_bastion.id
   vpc_security_group_ids = [aws_security_group.bastion_security_group.id]
+  key_name      = aws_key_pair.bastion_key_pair.key_name
 
   tags = {
     Name = "ec2_bastion_host"
@@ -241,6 +275,7 @@ resource "aws_instance" "ec2-flask" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.public_subnet_flask.id
   vpc_security_group_ids = [aws_security_group.flask_security_group.id]
+  key_name      = aws_key_pair.flask_key_pair.key_name
 
   tags = {
     Name = "ec2_flask_app"
