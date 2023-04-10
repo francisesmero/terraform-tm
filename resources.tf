@@ -6,6 +6,30 @@ resource "aws_vpc" "tm_vpc" {
   }
 }
 
+resource "aws_internet_gateway" "tm_internet_gateway" {
+  vpc_id = aws_vpc.tm_vpc.id
+
+  tags = {
+    Name = "main"
+  }
+}
+
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.tm_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.tm_internet_gateway.id
+  }
+
+  tags = {
+    Name = "public route table"
+  }
+}
+
+
+
+
 resource "aws_subnet" "public_subnet_bastion" {
   vpc_id     = aws_vpc.tm_vpc.id
   cidr_block = "172.30.0.0/24"
@@ -56,6 +80,11 @@ resource "aws_subnet" "public_subnet_flask" {
   }
 }
 
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.public_subnet_bastion.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+
 # security groups 
 
 resource "aws_security_group" "bastion_security_group" {
@@ -86,14 +115,6 @@ resource "aws_security_group_rule" "bastion-ingress-rule-1" {
   security_group_id        = aws_security_group.bastion_security_group.id
 }
 
-resource "aws_security_group_rule" "bastion-ingress-rule-2" {
-  type                     = "ingress"
-  from_port                = "3306"
-  to_port                  = "3306"
-  protocol                 = "tcp"
-  security_group_id        = aws_security_group.bastion_security_group.id
-  source_security_group_id = aws_security_group.etl_rds_security_group.id
-}
 
 resource "aws_security_group_rule" "bastion-egress-rule-1" {
   type                     = "egress"
@@ -226,16 +247,6 @@ resource "aws_db_subnet_group" "multi_az_subnets" {
 
 # generate key-pairs for bation and flask
 
-resource "aws_key_pair" "bastion_key_pair" {
-  key_name   = "bastion_key_pair"
-  public_key = tls_private_key.bastion_private_key.public_key_openssh
-}
-
-resource "aws_key_pair" "flask_key_pair" {
-  key_name   = "flask_key_pair"
-  public_key = tls_private_key.flask_private_key.public_key_openssh
-}
-
 resource "tls_private_key" "bastion_private_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -246,14 +257,24 @@ resource "tls_private_key" "flask_private_key" {
   rsa_bits  = 4096
 }
 
+resource "aws_key_pair" "bastion_key_pair" {
+  key_name   = "bastion_key_pair"
+  public_key = tls_private_key.bastion_private_key.public_key_openssh
+}
+
+resource "aws_key_pair" "flask_key_pair" {
+  key_name   = "flask_key_pair"
+  public_key = tls_private_key.flask_private_key.public_key_openssh
+}
+
 resource "local_file" "bastion-key" {
   content  = tls_private_key.bastion_private_key.private_key_pem
-  filename = "bastion-key"
+  filename = "bastion_key_pair.pem"
 }
 
 resource "local_file" "flask-key" {
   content  = tls_private_key.flask_private_key.private_key_pem
-  filename = "flask-key"
+  filename = "flask_key_pair.pem"
 }
 
 
