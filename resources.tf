@@ -33,7 +33,7 @@ resource "aws_route_table" "public_route_table" {
 resource "aws_subnet" "public_subnet_bastion" {
   vpc_id     = aws_vpc.tm_vpc.id
   cidr_block = "172.30.0.0/24"
-  map_public_ip_on_launch = true
+  
 
   tags = {
     Name = "public-subnet-bastion"
@@ -142,6 +142,16 @@ resource "aws_security_group_rule" "bastion-egress-rule-3" {
   security_group_id        = aws_security_group.bastion_security_group.id
   source_security_group_id = aws_security_group.etl_rds_security_group.id
 }
+
+
+resource "aws_security_group_rule" "bastion-egress-rule-4" {
+    type                   = "egress"
+    from_port              = "0"
+    to_port                = "0"
+    protocol               = "-1"
+    cidr_blocks            = ["0.0.0.0/0"]
+    security_group_id      = aws_security_group.bastion_security_group.id
+  }
 
 
 
